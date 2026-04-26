@@ -1,4 +1,2 @@
 aiogram
-pandas
 python-dotenv
-openpyxl
