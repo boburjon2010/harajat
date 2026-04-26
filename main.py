@@ -3,7 +3,7 @@ import sqlite3
 import os
 import logging
 from datetime import datetime
-import pandas as pd
+import csv  # Pandas o'rniga Pythonning o'zidagi tayyor kutubxona
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, StateFilter
@@ -171,20 +171,32 @@ async def show_stats(message: types.Message):
     await message.answer(txt)
 
 
-# --- EXCEL ---
+# --- EXCEL / CSV ---
 async def send_excel(message: types.Message):
     user_id = message.from_user.id
     conn = sqlite3.connect('my_money.db')
-    df = pd.read_sql_query(
-        f"SELECT date as 'Sana', category as 'Toifa', amount as 'Summa' FROM expenses WHERE user_id={user_id}", conn)
+    cursor = conn.cursor()
+
+    # Ma'lumotlarni bazadan olish
+    cursor.execute("SELECT date, category, amount FROM expenses WHERE user_id=?", (user_id,))
+    rows = cursor.fetchall()
     conn.close()
 
-    if df.empty:
+    if not rows:
         return await message.answer("Ma'lumot topilmadi.")
 
-    file_path = f"Xisobot_{user_id}.xlsx"
-    df.to_excel(file_path, index=False)
-    await message.answer_document(types.FSInputFile(file_path))
+    file_path = f"Xisobot_{user_id}.csv"
+
+    # UTF-8-SIG yozuvi Excel dasturi harflarni buzmasdan ochishi uchun kerak
+    with open(file_path, mode='w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Sana', 'Toifa', 'Summa'])  # Ustun nomlari
+        writer.writerows(rows)  # Ma'lumotlar
+
+    # Faylni foydalanuvchiga jo'natish
+    await message.answer_document(types.FSInputFile(file_path, filename=f"Xisobot_{user_id}.csv"))
+
+    # Ishlatib bo'lingach serverdan o'chirib tashlash
     if os.path.exists(file_path):
         os.remove(file_path)
 
