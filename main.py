@@ -33,7 +33,7 @@ dp = Dispatcher()
 logging.basicConfig(level=logging.INFO)
 
 
-# --- MA'LUMOTLAR BAZASI ---
+
 def init_db():
     conn = sqlite3.connect('my_money.db')
     cursor = conn.cursor()
